@@ -78,6 +78,6 @@ def composite(cls: type) -> type:
         if not n.startswith("_")
     }
     attrs["__init__"] = _constructor
-    composite_cls = type(cls.__name__, (type(base),), attrs)
+    composite_cls = type(cls.__name__, (base,), attrs)
     composite_cls.__iter__ = _make_iterator(composite_cls)
     return composite_cls
