@@ -3,6 +3,8 @@ from functools import reduce
 from inspect import getmembers, isfunction, signature
 from typing import Any, Iterable, List
 
+from deepmerge import always_merger
+
 
 def _constructor(self, *parts: List[Iterable[Any]]) -> None:
     self._parts = parts
@@ -37,7 +39,11 @@ def _make_method(name: str, func: callable) -> callable:
         def _reduce_parts(self, *args, **kwargs) -> Any:
             # self is iterable, results come out flattened
             return reduce(
-                lambda acc, obj: acc + getattr(obj, m)(*args, **kwargs),
+                lambda acc, obj: always_merger.merge(
+                    acc, getattr(obj, m)(*args, **kwargs)
+                )
+                if rt is dict
+                else acc + getattr(obj, m)(*args, **kwargs),
                 self,
                 _make_initializer(rt),
             )
