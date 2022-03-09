@@ -1,8 +1,8 @@
 # Composite Class Decorator
 
-Generic implementation of the [Composite Design Pattern](https://en.wikipedia.org/wiki/Composite_pattern) as a Python class decorator.
+This project contains a generic implementation of the [Composite Design Pattern](https://en.wikipedia.org/wiki/Composite_pattern) as a Python class decorator.
 
-This is an oppionated solution addressing a particular need of creating composite [Builders](https://en.wikipedia.org/wiki/Builder_pattern). All existing solutions we observed so far assumed manual reproduction on every abstract method in Composite, which is problematic from the maintenace point of view.
+This is a targeted solution addressing the particular need of creating composite [Builders](https://en.wikipedia.org/wiki/Builder_pattern). All existing solutions we observed so far assumed manual reproduction on every abstract method in Composite, which is problematic from the maintenance point of view.
 
 ## Usage Example
 
