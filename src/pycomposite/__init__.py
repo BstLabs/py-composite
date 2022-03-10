@@ -4,4 +4,4 @@ Generic implementation of the Composite Design Pattern as a Python class decorat
 
 from .composite_decorator import *
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
