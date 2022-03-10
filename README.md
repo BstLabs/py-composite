@@ -4,12 +4,14 @@ This project contains a generic implementation of the [Composite Design Pattern]
 
 This is a targeted solution addressing the particular need of creating composite [Builders](https://en.wikipedia.org/wiki/Builder_pattern). All existing solutions we observed so far assumed manual reproduction on every abstract method in Composite, which is problematic from a maintenance point of view.
 
+For more technical in-depth discussion please refer to our article: [Generic Composite in Python](https://python.plainenglish.io/generic-composite-in-python-4b88d6727ad0)
+
 ## Usage Example
 
 ```python
 from abc import ABC, abstractmethod
 from typing import Tuple, Any
-from composite_decorator import composite
+from pycomposite import composite
 
 class Configuration:
     '''
