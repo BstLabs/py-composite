@@ -1,7 +1,4 @@
-all: test_unit release
+all: test_unit
 
-release:
-	cp -R ./src/* ~/$(CAIOS_VERSION)/
-	
 test_unit:
-	caios test run unit
+	export PYTHONPATH=$(PYTHONPATH):./src;python3 -m unittest discover -v -s test/unit

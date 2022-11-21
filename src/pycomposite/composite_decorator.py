@@ -1,12 +1,12 @@
-from collections import deque
+from operator import add
 from functools import reduce
-from inspect import getmembers, isfunction, signature
-from typing import Any, Iterable, List
-
+from collections import deque
+from typing import Any, Iterable
 from deepmerge import always_merger
+from inspect import getmembers, isfunction, signature
 
 
-def _constructor(self, *parts: List[Iterable[Any]]) -> None:
+def _constructor(self, *parts: Iterable[Any]) -> None:
     self._parts = parts
 
 
@@ -38,14 +38,12 @@ def _make_method(name: str, func: callable) -> callable:
     def _make_reduce(m: str, rt: type) -> callable:
         def _reduce_parts(self, *args, **kwargs) -> Any:
             # self is iterable, results come out flattened
+            initializer = _make_initializer(rt)
+            combine = always_merger.merge if isinstance(initializer, dict) else add
             return reduce(
-                lambda acc, obj: always_merger.merge(
-                    acc, getattr(obj, m)(*args, **kwargs)
-                )
-                if rt is dict
-                else acc + getattr(obj, m)(*args, **kwargs),
+                lambda acc, obj: combine(acc, getattr(obj, m)(*args, **kwargs)),
                 self,
-                _make_initializer(rt),
+                initializer
             )
 
         return _reduce_parts
@@ -76,14 +74,12 @@ def composite(cls: type) -> type:
     :param cls: original class
     :return: Composite version of original class
     """
-    setattr(cls, "__init__", _constructor)
-    base = cls.__bases__[0]
     attrs = {
         n: _make_method(n, f)
         for n, f in getmembers(cls, predicate=isfunction)
         if not n.startswith("_")
     }
     attrs["__init__"] = _constructor
-    composite_cls = type(cls.__name__, (base,), attrs)
+    composite_cls = type(cls.__name__, cls.__bases__, attrs)
     composite_cls.__iter__ = _make_iterator(composite_cls)
     return composite_cls
