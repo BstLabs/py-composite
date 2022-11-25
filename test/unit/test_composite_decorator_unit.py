@@ -25,7 +25,7 @@ class Builder(ABC):
         pass
 
     @abstractmethod
-    def build_part_two(self, arg: str) -> Tuple:
+    def build_part_two(self, arg: str) -> tuple:
         pass
 
     @abstractmethod
@@ -44,7 +44,7 @@ class BuilderA(Builder):
             arg + 5,
         )
 
-    def build_part_two(self, arg: str) -> Tuple:
+    def build_part_two(self, arg: str) -> tuple:
         return (f"A: {arg}",)
 
     def configure_part_three(self, arg: Configuration) -> None:
