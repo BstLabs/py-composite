@@ -30,7 +30,8 @@ def _make_iterator(cls):
     return _iterator
 
 
-def _make_method(name: str, func: callable) -> callable:
+def _make_method(func_name: str, func: callable) -> callable:
+    # because of Python closure gotacha need to define nested functions
     def _make_reduce(m: str, rt: type) -> callable:
         init_value =  rt()
         combine = add if rt in (int, str, tuple) else always_merger.merge
@@ -54,7 +55,7 @@ def _make_method(name: str, func: callable) -> callable:
 
     rt_ = signature(func).return_annotation
     rt = get_origin(rt_) or rt_ # strip type annotation parameters like tuple[int, ...] if present
-    return _make_foreach(name) if rt is None else _make_reduce(name, rt)
+    return _make_foreach(func_name) if rt is None else _make_reduce(func_name, rt)
 
 
 # TODO: type annotation for parts (have to be descendants from the original class)
@@ -72,9 +73,9 @@ def composite(cls: type) -> type:
     :return: Composite version of original class
     """
     attrs = {
-        n: _make_method(n, f)
-        for n, f in getmembers(cls, predicate=isfunction)
-        if not n.startswith("_")
+        func_name: _make_method(func_name, func)
+        for func_name, func in getmembers(cls, predicate=isfunction)
+        if not func_name.startswith("_") # skip private methods, __magic_methods__ are TBD
     }
     attrs["__init__"] = _constructor
     composite_cls = type(cls.__name__, cls.__bases__, attrs)
