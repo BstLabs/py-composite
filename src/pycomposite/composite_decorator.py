@@ -1,12 +1,13 @@
 from collections import deque
 from functools import reduce
 from inspect import getmembers, isfunction, signature
-from typing import Any, Iterable, List
+from operator import add
+from typing import Iterable, get_origin
 
 from deepmerge import always_merger
 
 
-def _constructor(self, *parts: List[Iterable[Any]]) -> None:
+def _constructor(self, *parts) -> None:
     self._parts = parts
 
 
@@ -17,8 +18,8 @@ def _make_iterator(cls):
         # This one proved to be more reliable
         # Credit: https://stackoverflow.com/questions/26145678/implementing-a-depth-first-tree-iterator-in-python
         stack = deque(self._parts)
+        # Pop out the first element in the stack
         while stack:
-            # Pop out the first element in the stack
             part = stack.popleft()
             if cls == type(part):  # The same composite exactly
                 stack.extendleft(reversed(part._parts))
@@ -30,36 +31,39 @@ def _make_iterator(cls):
     return _iterator
 
 
-def _make_initializer(rt: type) -> Any:
-    return getattr(rt, "__origin__", rt)()
-
-
-def _make_method(name: str, func: callable) -> callable:
+def _make_method(func_name: str, func: callable) -> callable:
+    # because of Python closure gotacha need to define nested functions
     def _make_reduce(m: str, rt: type) -> callable:
-        def _reduce_parts(self, *args, **kwargs) -> Any:
+        init_value = rt()
+        combine = add if rt in (int, str, tuple) else always_merger.merge
+
+        def _reduce_parts(
+            self, *args, **kwargs
+        ):  # this is a member function, hence self
             # self is iterable, results come out flattened
             return reduce(
-                lambda acc, obj: always_merger.merge(
-                    acc, getattr(obj, m)(*args, **kwargs)
-                )
-                if rt is dict
-                else acc + getattr(obj, m)(*args, **kwargs),
+                lambda acc, obj: combine(acc, getattr(obj, m)(*args, **kwargs)),
                 self,
-                _make_initializer(rt),
+                init_value,
             )
 
         return _reduce_parts
 
     def _make_foreach(m) -> callable:
-        def _foreach_parts(self, *args, **kwargs) -> callable:
+        def _foreach_parts(
+            self, *args, **kwargs
+        ) -> None:  # this is a member function, hence self
             # self is iterable, concrete functions invoked depth first
             for obj in self:
                 getattr(obj, m)(*args, **kwargs)
 
         return _foreach_parts
 
-    rt: type = signature(func).return_annotation
-    return _make_foreach(name) if rt is None else _make_reduce(name, rt)
+    rt_ = signature(func).return_annotation
+    rt = (
+        get_origin(rt_) or rt_
+    )  # strip type annotation parameters like tuple[int, ...] if present
+    return _make_foreach(func_name) if rt is None else _make_reduce(func_name, rt)
 
 
 # TODO: type annotation for parts (have to be descendants from the original class)
@@ -76,14 +80,14 @@ def composite(cls: type) -> type:
     :param cls: original class
     :return: Composite version of original class
     """
-    setattr(cls, "__init__", _constructor)
-    base = cls.__bases__[0]
     attrs = {
-        n: _make_method(n, f)
-        for n, f in getmembers(cls, predicate=isfunction)
-        if not n.startswith("_")
+        func_name: _make_method(func_name, func)
+        for func_name, func in getmembers(cls, predicate=isfunction)
+        if not func_name.startswith(
+            "_"
+        )  # skip private methods, __magic_methods__ are TBD
     }
     attrs["__init__"] = _constructor
-    composite_cls = type(cls.__name__, (base,), attrs)
+    composite_cls = type(cls.__name__, cls.__bases__, attrs)
     composite_cls.__iter__ = _make_iterator(composite_cls)
     return composite_cls
